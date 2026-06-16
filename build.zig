@@ -4,14 +4,28 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const stb = b.addTranslateC(.{
+        .root_source_file = b.path("c/stb.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    const root_module = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "stb", .module = stb.createModule() },
+        },
+    });
+    
+    root_module.addIncludePath(b.path("c"));
+    root_module.addCSourceFile(.{ .file = b.path("c/stb.c"), .flags = &.{} });
+    root_module.link_libc = true;
+
     const exe = b.addExecutable(.{
         .name = "typewriter",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{},
-        }),
+        .root_module = root_module,
     });
 
     b.installArtifact(exe);

@@ -38,7 +38,7 @@ pub fn main(init: std.process.Init) !void {
     defer img.free(alloc);
     const txt: Text = .{
         .font = try .init(content, 80),
-        .raw = "Hello, World! In todays video we will discuss..."
+        .raw = "Hello, World!\nIn todays video we will discuss..."
     };
     img.clear(Image.BLACK);
     img.addText(txt, Image.WHITE);

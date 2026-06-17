@@ -60,10 +60,13 @@ pub fn addText(img: *Img, text: Text, color: Color) void {
     var x: i32 = 0;
     var y: i32 = 0;
     for(text.raw) |c| {
-        const w = Text.writeChar(&text.font, img, @intCast(c), x, y, color) catch @panic("guh");
-        x += w;
-        y = y;
-        // todo : change y only if this char is a \n
+        if (c == '\n') {
+            y += text.font.ascent;
+            x = 0;
+            continue;
+        }
+        x += Text.writeChar(&text.font, img, @intCast(c), x, y, color)
+            catch continue; // todo improve error handling here;
     }
 }
 

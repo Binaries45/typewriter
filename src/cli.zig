@@ -17,7 +17,8 @@ const Opt = enum {
     fps,
     cps,
     w,
-    h
+    h,
+    font,
 };
 
 pub const Proc = struct {
@@ -33,6 +34,8 @@ pub const Proc = struct {
     width: u32 = 1920,
     /// frame height
     height: u32 = 1080,
+    /// path to a font file
+    font: []const u8 = "assets/LinuxLibertine.ttf"
 };
 
 pub fn parseArgs(alloc: std.mem.Allocator, args: *std.process.Args.Iterator) Proc {
@@ -75,6 +78,11 @@ pub fn parseArgs(alloc: std.mem.Allocator, args: *std.process.Args.Iterator) Pro
             const int = std.fmt.parseInt(u32, val, 10) catch
                 reportError(.{ .ExpectedInt = val }, alloc);
             proc.height = int;
+            continue :state nextOpt(args, alloc);
+        },
+        .font => {
+            const val = args.next() orelse reportError(.ExpectedValue, alloc);
+            proc.font = val;
             continue :state nextOpt(args, alloc);
         },
         .none => break :state,

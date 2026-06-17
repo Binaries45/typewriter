@@ -1,8 +1,10 @@
 const std = @import("std");
 const Io = std.Io;
 const cli = @import("cli.zig");
-const stb = @import("stb");
 const Image = @import("Image.zig");
+const Text = @import("Text.zig");
+// im forwarding this type because zls is struggling with importing it to other files
+pub const stb = @import("stb");
 
 pub fn main(init: std.process.Init) !void {
     const alloc = init.arena.allocator();
@@ -17,14 +19,28 @@ pub fn main(init: std.process.Init) !void {
         \\      fps:        {d}
         \\      cps:        {d}
         \\      dimensions: {d}x{d}
+        \\      font: {s}
     , .{
         proc.input, proc.output_dir, proc.fps,
-        proc.cps, proc.width, proc.height
+        proc.cps, proc.width, proc.height,
+        proc.font,
     });
 
     // test image write : this is temporary
-    var img: Image = .blank(alloc, 256, 256);
+    const file = try Io.Dir.cwd().openFile(init.io, proc.font, .{.mode = .read_only});
+    defer file.close(init.io);
+    const size = (try file.stat(init.io)).size;
+
+    const font_data = try alloc.alloc(u8, size);
+    const content = try Io.Dir.readFile(Io.Dir.cwd(), init.io, proc.font, font_data);
+
+    var img: Image = .blank(alloc, proc.width, proc.height);
     defer img.free(alloc);
-    img.clear(Image.BLUE);
+    const txt: Text = .{
+        .font = try .init(content, 80),
+        .raw = "Hello, World! In todays video we will discuss..."
+    };
+    img.clear(Image.BLACK);
+    img.addText(txt, Image.WHITE);
     try img.writeToPng(alloc, "test.png");
 }

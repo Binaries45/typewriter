@@ -1,10 +1,14 @@
 const std = @import("std");
-const stb = @import("stb");
+// const stb = @import("stb");
+const stb = @import("main.zig").stb;
+const Text = @import("Text.zig");
 
 pub const Color = @Vector(4, u8);
-pub const RED  : Color = .{255, 0, 0, 255};
-pub const GREEN: Color = .{0, 255, 0, 255};
-pub const BLUE : Color = .{0, 0, 255, 255};
+pub const RED   : Color = .{255, 0, 0, 255};
+pub const GREEN : Color = .{0, 255, 0, 255};
+pub const BLUE  : Color = .{0, 0, 255, 255};
+pub const BLACK : Color = .{0, 0, 0, 255};
+pub const WHITE : Color = .{255, 255, 255, 255};
 
 width: u32,
 height: u32,
@@ -50,6 +54,17 @@ pub fn writeToPng(img: Img, alloc: std.mem.Allocator, path: [:0]const u8) !void 
     }
 
     try writePng(path, img.width, img.height, pixels);
+}
+
+pub fn addText(img: *Img, text: Text, color: Color) void {
+    var x: i32 = 0;
+    var y: i32 = 0;
+    for(text.raw) |c| {
+        const w = Text.writeChar(&text.font, img, @intCast(c), x, y, color) catch @panic("guh");
+        x += w;
+        y = y;
+        // todo : change y only if this char is a \n
+    }
 }
 
 const Img = @This();

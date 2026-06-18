@@ -100,3 +100,18 @@ pub fn writeChar(
 
     return advance_px;
 }
+
+pub fn fromPath(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Text {
+    const file = try std.Io.Dir.cwd().openFile(io, path, .{.mode = .read_only});
+    defer file.close(io);
+
+    const size = (try file.stat(io)).size;
+    const data = try alloc.alloc(u8, size);
+    const content = try std.Io.Dir.readFile(std.Io.Dir.cwd(), io, path, data);
+
+    return .{
+        .raw = content,
+        // must be set later by the caller
+        .font = undefined,
+    };
+}

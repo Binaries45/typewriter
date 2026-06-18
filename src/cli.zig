@@ -35,7 +35,7 @@ pub const Proc = struct {
     /// frame height
     height: u32 = 1080,
     /// path to a font file
-    font: []const u8 = "assets/LinuxLibertine.ttf"
+    font: []const u8 = "assets/VictorMono.ttf"
 };
 
 pub fn parseArgs(alloc: std.mem.Allocator, args: *std.process.Args.Iterator) Proc {

@@ -26,7 +26,7 @@ pub fn main(init: std.process.Init) !void {
         proc.font,
     });
 
-    // test image write : this is temporary
+    // load the font
     const file = try Io.Dir.cwd().openFile(init.io, proc.font, .{.mode = .read_only});
     defer file.close(init.io);
     const size = (try file.stat(init.io)).size;
@@ -34,12 +34,13 @@ pub fn main(init: std.process.Init) !void {
     const font_data = try alloc.alloc(u8, size);
     const content = try Io.Dir.readFile(Io.Dir.cwd(), init.io, proc.font, font_data);
 
+    // collect text
+    var txt: Text = try .fromPath(alloc, init.io, proc.input);
+    txt.font = try .init(content, 40);
+
+    // write image : this is a test for now and will be replaced with animation generation later
     var img: Image = .blank(alloc, proc.width, proc.height);
     defer img.free(alloc);
-    const txt: Text = .{
-        .font = try .init(content, 80),
-        .raw = "Hello, World!\nIn todays video we will discuss..."
-    };
     img.clear(Image.BLACK);
     img.addText(txt, Image.WHITE);
     try img.writeToPng(alloc, "test.png");

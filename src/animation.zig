@@ -20,7 +20,7 @@ fn renderBatch(b: *Batch) !void {
     defer img.free(b.alloc);
 
     for(b.start..b.end) |i| {
-        img.clear(Image.BLACK); // todo : take clear color as option
+        img.clear(b.proc.bg);
         const nc = @as(usize, @intFromFloat(@round((
         @as(f32, @floatFromInt(i))
             / @as(f32, @floatFromInt(b.proc.fps)))

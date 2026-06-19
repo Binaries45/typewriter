@@ -20,16 +20,15 @@ pub fn highlight(h: HL, text: *Text) void {
     h.vtable.highlight(text);
 }
 
-// todo: zig syntax highlighting impl
 pub const Zig = struct {
     fn tokenColor(tag: std.zig.Token.Tag) Color {
         return switch (tag) {
             .identifier => Image.WHITE,
-            .builtin => Color {36, 97, 227, 255},
+            .builtin => Color {0, 187, 212, 255},
             .multiline_string_literal_line,
             .string_literal,
-            .char_literal,
-            .number_literal => Color {8, 120, 0, 255},
+            .char_literal => Color {204, 184, 6, 255},
+            .number_literal => Color {22, 87, 224, 255},
             .doc_comment,
             .container_doc_comment => Color {90, 90, 90, 255},
 

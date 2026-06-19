@@ -1,4 +1,6 @@
 const std = @import("std");
+const Image = @import("Image.zig");
+const Color = Image.Color;
 
 const Error = enum {
     InvalidOption,
@@ -18,6 +20,7 @@ const Opt = enum {
     cps,
     w,
     h,
+    bg,
     font,
 };
 
@@ -35,7 +38,9 @@ pub const Proc = struct {
     /// frame height
     height: u32 = 1080,
     /// path to a font file
-    font: []const u8 = "assets/VictorMono.ttf"
+    font: []const u8 = "assets/VictorMono.ttf",
+    /// the background color of the animation
+    bg: Color = Image.BLACK,
 };
 
 pub fn parseArgs(alloc: std.mem.Allocator, args: *std.process.Args.Iterator) Proc {
@@ -83,6 +88,25 @@ pub fn parseArgs(alloc: std.mem.Allocator, args: *std.process.Args.Iterator) Pro
         .font => {
             const val = args.next() orelse reportError(.ExpectedValue, alloc);
             proc.font = val;
+            continue :state nextOpt(args, alloc);
+        },
+        .bg => {
+            const r_val = args.next() orelse
+                reportError(ErrCtx.ExpectedValue, alloc);
+            const r = std.fmt.parseInt(u8, r_val, 10) catch
+                reportError(.{ .ExpectedInt = r_val }, alloc);
+
+            const g_val = args.next() orelse
+                reportError(ErrCtx.ExpectedValue, alloc);
+            const g = std.fmt.parseInt(u8, g_val, 10) catch
+                reportError(.{ .ExpectedInt = g_val }, alloc);
+
+            const b_val = args.next() orelse
+                reportError(ErrCtx.ExpectedValue, alloc);
+            const b = std.fmt.parseInt(u8, b_val, 10) catch
+                reportError(.{ .ExpectedInt = b_val }, alloc);
+
+            proc.bg = Color {r, g, b, 255};
             continue :state nextOpt(args, alloc);
         },
         .none => break :state,

@@ -35,6 +35,6 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
         const path = try std.fmt.allocPrintSentinel(alloc, "{s}/{d:0>6}.png", .{proc.output_dir, i}, 0);
         img.addText(text, nc);
         try img.writeToPng(alloc, path);
-        std.debug.print("\r    rendered {d}/{d} frames    ", .{i, total_frames});
+        std.debug.print("\r    rendered {d}/{d} frames    ", .{i + 1, total_frames});
     }
 }

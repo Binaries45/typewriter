@@ -56,10 +56,12 @@ pub fn writeToPng(img: Img, alloc: std.mem.Allocator, path: [:0]const u8) !void 
     try writePng(path, img.width, img.height, pixels);
 }
 
-pub fn addText(img: *Img, text: Text, n_chars: usize, color: Color) void {
+pub fn addText(img: *Img, text: Text, n_chars: usize) void {
     var x: i32 = 0;
     var y: i32 = 0;
-    for(text.raw[0..n_chars]) |c| {
+    for(0..n_chars) |i| {
+        const c = text.raw[i];
+        const color = text.colors[i];
         if (c == '\n') {
             y += text.font.ascent;
             x = 0;

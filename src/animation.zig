@@ -3,6 +3,7 @@ const Io = std.Io;
 const Proc = @import("cli.zig").Proc;
 const Text = @import("Text.zig");
 const Image = @import("Image.zig");
+const Highlight = @import("Highlight.zig");
 
 pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
     const file = try Io.Dir.cwd().openFile(io, proc.font, .{.mode = .read_only});
@@ -14,6 +15,8 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
 
     var text: Text = try .fromPath(alloc, io, proc.input);
     text.font = try .init(content, 30);
+
+    Highlight.highlight(Highlight.Zig.hl(), &text);
 
     var img: Image = .blank(alloc, proc.width, proc.height);
     defer img.free(alloc);
@@ -30,7 +33,7 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
             * @as(f32, @floatFromInt(proc.cps))
         )));
         const path = try std.fmt.allocPrintSentinel(alloc, "{s}/{d:0>6}.png", .{proc.output_dir, i}, 0);
-        img.addText(text, nc, Image.WHITE);
+        img.addText(text, nc);
         try img.writeToPng(alloc, path);
         std.debug.print("\r    rendered {d}/{d} frames    ", .{i, total_frames});
     }

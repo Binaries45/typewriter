@@ -6,7 +6,10 @@ const Color = Image.Color;
 
 const Text = @This();
 
-raw: []const u8,
+raw: [:0]const u8,
+/// the color mapping for each char, this array is parallel to raw,
+/// color[i] is the color of the character raw[i]
+colors: []const Color,
 font: Font,
 
 const Error = error {
@@ -105,13 +108,24 @@ pub fn fromPath(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Text {
     const file = try std.Io.Dir.cwd().openFile(io, path, .{.mode = .read_only});
     defer file.close(io);
 
-    const size = (try file.stat(io)).size;
-    const data = try alloc.alloc(u8, size);
-    const content = try std.Io.Dir.readFile(std.Io.Dir.cwd(), io, path, data);
+    const content = try std.Io.Dir.readFileAllocOptions(
+        std.Io.Dir.cwd(),
+        io, path, alloc,
+        .unlimited, .@"1", 0
+    );
+
+    const colors = try alloc.alloc(Color, content.len);
+    @memset(colors, Image.WHITE);
 
     return .{
         .raw = content,
+        .colors = colors,
         // must be set later by the caller
         .font = undefined,
     };
+}
+
+/// set a range of the color map to the given color
+pub fn setColors(self: *Text, start: usize, end: usize, color: Color) void {
+    @memset(@constCast(self.colors[start..end]), color);
 }

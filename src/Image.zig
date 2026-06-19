@@ -56,7 +56,7 @@ pub fn writeToPng(img: Img, alloc: std.mem.Allocator, path: [:0]const u8) !void 
     try writePng(path, img.width, img.height, pixels);
 }
 
-pub fn addText(img: *Img, text: Text, n_chars: usize) void {
+pub fn addText(img: *Img, text: *const Text, n_chars: usize) void {
     var x: i32 = 0;
     var y: i32 = 0;
     for(0..n_chars) |i| {
@@ -67,6 +67,7 @@ pub fn addText(img: *Img, text: Text, n_chars: usize) void {
             x = 0;
             continue;
         }
+        if (c <= 31) continue;
         x += Text.writeChar(&text.font, img, @intCast(c), x, y, color)
             catch continue; // todo improve error handling here;
     }

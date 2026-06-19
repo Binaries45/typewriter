@@ -5,6 +5,36 @@ const Text = @import("Text.zig");
 const Image = @import("Image.zig");
 const Highlight = @import("Highlight.zig");
 
+var frames_rendered: std.atomic.Value(usize) = .init(0);
+
+const Batch = struct {
+    alloc: std.mem.Allocator,
+    text: *const Text,
+    proc: Proc,
+    start: usize,
+    end: usize,
+};
+
+fn renderBatch(b: *Batch) !void {
+    var img: Image = .blank(b.alloc, b.proc.width, b.proc.height);
+    defer img.free(b.alloc);
+
+    for(b.start..b.end) |i| {
+        img.clear(Image.BLACK); // todo : take clear color as option
+        const nc = @as(usize, @intFromFloat(@round((
+        @as(f32, @floatFromInt(i))
+            / @as(f32, @floatFromInt(b.proc.fps)))
+            * @as(f32, @floatFromInt(b.proc.cps))
+        )));
+        const path = try std.fmt.allocPrintSentinel(b.alloc, "{s}/{d:0>6}.png", .{b.proc.output_dir, i}, 0);
+        defer b.alloc.free(path);
+        img.addText(b.text, nc);
+        try img.writeToPng(b.alloc, path);
+        _ = frames_rendered.fetchAdd(1, .monotonic);
+        std.debug.print("\r    frames rendered: {d}", .{frames_rendered.raw});
+    }
+}
+
 pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
     const file = try Io.Dir.cwd().openFile(io, proc.font, .{.mode = .read_only});
     defer file.close(io);
@@ -18,23 +48,34 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
 
     Highlight.highlight(Highlight.Zig.hl(), &text);
 
-    var img: Image = .blank(alloc, proc.width, proc.height);
-    defer img.free(alloc);
-
+    // todo : calc num threads and spawn batches
     const total_frames = (text.raw.len / proc.cps) * proc.fps;
+    const n_threads = @min(10, try std.Thread.getCpuCount());
+    var threads = try alloc.alloc(std.Thread, n_threads);
+    defer alloc.free(threads);
+
+    var batches = try alloc.alloc(Batch, n_threads);
+    defer alloc.free(batches);
+
+    const batch_frames = total_frames / n_threads;
+
     std.debug.print("rendering {d} frames\n", .{total_frames});
 
-    // todo maybe parallelize this since frames are independent, it would help with render times a lot
-    for(0..total_frames) |i| {
-        img.clear(Image.BLACK); // todo : take clear color as option
-        const nc = @as(usize, @intFromFloat(@round((
-            @as(f32, @floatFromInt(i))
-            / @as(f32, @floatFromInt(proc.fps)))
-            * @as(f32, @floatFromInt(proc.cps))
-        )));
-        const path = try std.fmt.allocPrintSentinel(alloc, "{s}/{d:0>6}.png", .{proc.output_dir, i}, 0);
-        img.addText(text, nc);
-        try img.writeToPng(alloc, path);
-        std.debug.print("\r    rendered {d}/{d} frames    ", .{i + 1, total_frames});
+    for(0..n_threads) |i| {
+        const start = i * batch_frames;
+        const end = if (i == n_threads - 1) total_frames
+                    else start + batch_frames;
+
+        batches[i] = Batch {
+            .alloc = alloc,
+            .proc = proc,
+            .text = &text,
+            .start = start,
+            .end = end,
+        };
+
+        threads[i] = try std.Thread.spawn(.{}, renderBatch, .{&batches[i]});
     }
+
+    for(threads) |t| t.join();
 }

@@ -16,6 +16,10 @@ pub const VTable = struct {
     highlight: *const fn (text: *Text) void,
 };
 
+pub fn highlight(h: HL, text: *Text) void {
+    h.vtable.highlight(text);
+}
+
 // todo: zig syntax highlighting impl
 pub const Zig = struct {
     fn tokenColor(tag: std.zig.Token.Tag) Color {
@@ -96,7 +100,3 @@ pub const Zig = struct {
         };
     }
 };
-
-pub fn highlight(h: HL, text: *Text) void {
-    h.vtable.highlight(text);
-}

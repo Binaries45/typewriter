@@ -56,9 +56,21 @@ pub fn writeToPng(img: Img, alloc: std.mem.Allocator, path: [:0]const u8) !void 
     try writePng(path, img.width, img.height, pixels);
 }
 
+fn textHeight(text: *const Text, n_chars: usize) i32 {
+    var lines: i32 = 1;
+
+    for(0..n_chars) |i| {
+        if (text.raw[i] == '\n') lines += 1;
+    }
+
+    return (lines + 1) * text.font.ascent;
+}
+
 pub fn addText(img: *Img, text: *const Text, n_chars: usize) void {
+    const text_height = textHeight(text, n_chars);
+    const scroll = @as(i32, @max(0, text_height - @as(i32, @intCast(img.height))));
     var x: i32 = 0;
-    var y: i32 = 0;
+    var y: i32 = -scroll;
     for(0..n_chars) |i| {
         const c = text.raw[i];
         const color = text.colors[i];

@@ -48,7 +48,6 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
 
     Highlight.highlight(Highlight.Zig.hl(), &text);
 
-    // todo : calc num threads and spawn batches
     const total_frames = (text.raw.len / proc.cps) * proc.fps;
     const n_threads = @min(10, try std.Thread.getCpuCount());
     var threads = try alloc.alloc(std.Thread, n_threads);

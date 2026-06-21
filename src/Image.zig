@@ -13,6 +13,15 @@ width: u32,
 height: u32,
 pixels: []Color,
 
+pub const Symbol = struct {
+    width: usize,
+    height: usize,
+    x_off: i32,
+    y_off: i32,
+    advance: i32,
+    pixels: []u8,
+};
+
 fn writePng(path: [*:0]const u8, width: u32, height: u32, pixels: []const u8) !void {
     const result = ImageWrite.stbi_write_png(
         path,
@@ -65,11 +74,36 @@ fn textHeight(text: *const Text, n_chars: usize) i32 {
     return (lines + 1) * text.font.ascent;
 }
 
-pub fn addText(img: *Img, text: *const Text, n_chars: usize) void {
+fn addSymbol(img: *Img, s: Symbol, x: i32, y: i32, color: Color) void {
+    const dx = x + s.x_off;
+    const dy = y + s.y_off;
+    for (0..s.height) |cy| for (0..s.width) |cx| {
+        // const i = (@as(u32, @intCast(by)) * @as(u32, @intCast(sy))) * img.width + (@as(u32, @intCast(bx)) * @as(u32, @intCast(sx)));
+        const fx = dx + @as(i32, @intCast(cx));
+        const fy = dy + @as(i32, @intCast(cy));
+        if (fx < 0 or fy < 0) continue;
+        if (fx >= img.width or fy >= img.height) continue;
+
+        const alpha = s.pixels[cy * s.width + cx];
+        if(alpha == 0) continue;
+
+        const i = @as(usize, @intCast(fy)) * img.width + @as(usize, @intCast(fx));
+        if (i >= img.pixels.len) continue;
+
+        const a = @as(f32, @floatFromInt(alpha)) / 255;
+        const r: u8 = @trunc(@as(f32, @floatFromInt(color[0])) * a + @as(f32, @floatFromInt(img.pixels[i][0])) * (1 - a));
+        const g: u8 = @trunc(@as(f32, @floatFromInt(color[1])) * a + @as(f32, @floatFromInt(img.pixels[i][1])) * (1 - a));
+        const b: u8 = @trunc(@as(f32, @floatFromInt(color[2])) * a + @as(f32, @floatFromInt(img.pixels[i][2])) * (1 - a));
+
+        img.pixels[i] = .{r, g, b, 255};
+    };
+}
+
+pub fn addText(img: *Img, text: *Text, n_chars: usize, cache: [256]?Symbol) void {
     const text_height = textHeight(text, n_chars);
     const scroll = @as(i32, @max(0, text_height - @as(i32, @intCast(img.height))));
     var x: i32 = 0;
-    var y: i32 = -scroll;
+    var y: i32 = text.font.ascent - scroll;
     for(0..n_chars) |i| {
         const c = text.raw[i];
         const color = text.colors[i];
@@ -79,8 +113,10 @@ pub fn addText(img: *Img, text: *const Text, n_chars: usize) void {
             continue;
         }
         if (c <= 31) continue;
-        x += Text.writeChar(&text.font, img, @intCast(c), x, y, color)
-            catch continue; // todo improve error handling here;
+
+        const s = cache[c].?; // is expected to be non-null by now
+        img.addSymbol(s, x, y, color);
+        x += s.advance;
     }
 }
 

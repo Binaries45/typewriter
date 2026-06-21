@@ -52,57 +52,6 @@ pub const Font = struct {
     }
 };
 
-/// write a char to the given image
-pub fn writeChar(
-    font: *const Font,
-    img: *Image,
-    codepoint: u32,
-    x: i32,
-    y: i32,
-    color: Color,
-) !i32 {
-    var width: c_int = 0;
-    var height: c_int = 0;
-    var x_off: c_int = 0;
-    var y_off: c_int = 0;
-
-    var advance: c_int = 0;
-    var lsb: c_int = 0;
-    TrueType.stbtt_GetCodepointHMetrics(&font.info, @intCast(codepoint), &advance, &lsb);
-    const advance_px: i32 = @intFromFloat(@as(f32, @floatFromInt(advance)) * font.scale);
-
-    const bitmap = TrueType.stbtt_GetCodepointBitmap(
-        &font.info, 0, font.scale, @intCast(codepoint),
-        &width, &height, &x_off, &y_off
-    );
-    defer TrueType.stbtt_FreeBitmap(bitmap, null);
-
-    const dy = y + font.ascent + y_off;
-    const dx = x + x_off;
-
-    for(0..@intCast(height)) |cy| for(0..@intCast(width)) |cx| {
-        const fx = dx + @as(i32, @intCast(cx));
-        const fy = dy + @as(i32, @intCast(cy));
-        if (fx < 0 or fy < 0) continue;
-        if (@as(u32, @intCast(fx)) >= img.width) continue;
-
-        const alpha = bitmap[@as(usize, @intCast(width)) * cy + cx];
-        if (alpha == 0) continue;
-
-        const i = (@as(u32, @intCast(fy)) * img.width + @as(u32, @intCast(fx)));
-        if (i >= img.pixels.len) continue;
-
-        const a = @as(f32, @floatFromInt(alpha)) / 255;
-        const r: u8 = @trunc(@as(f32, @floatFromInt(color[0])) * a + @as(f32, @floatFromInt(img.pixels[i][0])) * (1 - a));
-        const g: u8 = @trunc(@as(f32, @floatFromInt(color[1])) * a + @as(f32, @floatFromInt(img.pixels[i][1])) * (1 - a));
-        const b: u8 = @trunc(@as(f32, @floatFromInt(color[2])) * a + @as(f32, @floatFromInt(img.pixels[i][2])) * (1 - a));
-
-        img.pixels[i] = .{ r, g, b, 255};
-    };
-
-    return advance_px;
-}
-
 pub fn fromPath(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Text {
     const file = try std.Io.Dir.cwd().openFile(io, path, .{.mode = .read_only});
     defer file.close(io);
@@ -127,4 +76,39 @@ pub fn fromPath(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Text {
 /// set a range of the color map to the given color
 pub fn setColors(self: *Text, start: usize, end: usize, color: Color) void {
     @memset(@constCast(self.colors[start..end]), color);
+}
+
+pub fn TextToSymbol(alloc: std.mem.Allocator, text: *Text, c: u32) Image.Symbol {
+    var x0: i32 = undefined;
+    var x1: i32 = undefined;
+    var y0: i32 = undefined;
+    var y1: i32 = undefined;
+
+    TrueType.stbtt_GetCodepointBitmapBox(
+        &text.font.info, @intCast(c), text.font.scale, text.font.scale,
+        &x0, &y0, &x1, &y1
+    );
+
+    const w = @as(usize, @intCast(x1 - x0));
+    const h = @as(usize, @intCast(y1 - y0));
+
+    const bmp = alloc.alloc(u8, w * h) catch unreachable;
+    _ = TrueType.stbtt_MakeCodepointBitmap(
+        &text.font.info, bmp.ptr,
+        @intCast(w), @intCast(h), @intCast(w),
+        text.font.scale, text.font.scale, @intCast(c)
+    );
+
+    var advance: c_int = 0;
+    var lsb: c_int = 0;
+    TrueType.stbtt_GetCodepointHMetrics(&text.font.info, @intCast(c), &advance, &lsb);
+
+    return .{
+        .width = w,
+        .height = h,
+        .pixels = bmp,
+        .x_off = x0,
+        .y_off = y0,
+        .advance = @intFromFloat( @as(f32, @floatFromInt(advance)) * text.font.scale),
+    };
 }

@@ -3,16 +3,18 @@ const Io = std.Io;
 const Proc = @import("cli.zig").Proc;
 const Text = @import("Text.zig");
 const Image = @import("Image.zig");
+const Symbol = Image.Symbol;
 const Highlight = @import("Highlight.zig");
 
 var frames_rendered: std.atomic.Value(usize) = .init(0);
 
 const Batch = struct {
     alloc: std.mem.Allocator,
-    text: *const Text,
+    text: *Text,
     proc: Proc,
     start: usize,
     end: usize,
+    cache: [256]?Symbol,
 };
 
 fn renderBatch(b: *Batch) !void {
@@ -28,7 +30,7 @@ fn renderBatch(b: *Batch) !void {
         )));
         const path = try std.fmt.allocPrintSentinel(b.alloc, "{s}/{d:0>6}.png", .{b.proc.output_dir, i}, 0);
         defer b.alloc.free(path);
-        img.addText(b.text, nc);
+        img.addText(b.text, nc, b.cache);
         try img.writeToPng(b.alloc, path);
         _ = frames_rendered.fetchAdd(1, .monotonic);
         std.debug.print("\r    frames rendered: {d}", .{frames_rendered.raw});
@@ -49,17 +51,26 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
     Highlight.highlight(Highlight.Zig.hl(), &text);
 
     const total_frames = (text.raw.len / proc.cps) * proc.fps;
+
+    // set up threads
     const n_threads = @min(10, try std.Thread.getCpuCount());
     var threads = try alloc.alloc(std.Thread, n_threads);
     defer alloc.free(threads);
 
+    // set up batches
     var batches = try alloc.alloc(Batch, n_threads);
     defer alloc.free(batches);
 
     const batch_frames = total_frames / n_threads;
 
-    std.debug.print("rendering {d} frames\n", .{total_frames});
+    // set up cache
+    var cache: [256]?Symbol = .{null} ** 256;
+    for(text.raw) |c| {
+        if(cache[c]) |_| continue;
+        cache[c] = Text.TextToSymbol(alloc, &text, @intCast(c));
+    }
 
+    std.debug.print("rendering {d} frames\n", .{total_frames});
     for(0..n_threads) |i| {
         const start = i * batch_frames;
         const end = if (i == n_threads - 1) total_frames
@@ -71,6 +82,7 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
             .text = &text,
             .start = start,
             .end = end,
+            .cache = cache,
         };
 
         threads[i] = try std.Thread.spawn(.{}, renderBatch, .{&batches[i]});

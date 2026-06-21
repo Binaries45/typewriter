@@ -4,8 +4,6 @@ const cli = @import("cli.zig");
 const Image = @import("Image.zig");
 const Text = @import("Text.zig");
 const animation = @import("animation.zig");
-// im forwarding this type because zls is struggling with importing it to other files
-pub const stb = @import("stb");
 
 pub fn main(init: std.process.Init) !void {
     const alloc = init.arena.allocator();

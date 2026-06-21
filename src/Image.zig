@@ -1,6 +1,5 @@
 const std = @import("std");
-// const stb = @import("stb");
-const stb = @import("main.zig").stb;
+const ImageWrite = @import("zstb").ImageWrite;
 const Text = @import("Text.zig");
 
 pub const Color = @Vector(4, u8);
@@ -15,7 +14,7 @@ height: u32,
 pixels: []Color,
 
 fn writePng(path: [*:0]const u8, width: u32, height: u32, pixels: []const u8) !void {
-    const result = stb.stbi_write_png(
+    const result = ImageWrite.stbi_write_png(
         path,
         @intCast(width),
         @intCast(height),

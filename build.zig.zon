@@ -3,7 +3,12 @@
     .version = "0.0.0",
     .fingerprint = 0x1394b3e9ea7c2e89,
     .minimum_zig_version = "0.16.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .zstb = .{
+            .url = "git+https://github.com/Binaries45/zstb#53d3b1f09cda57601de45ccf088614ff797ed62d",
+            .hash = "zstb-0.0.0-H-TBAMYmBAC5gtVvPRmY-tCZHJnii8WJ4GVCvCLgdWSL",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",

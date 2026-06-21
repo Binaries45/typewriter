@@ -1,6 +1,5 @@
 const std = @import("std");
-// const stb = @import("stb");
-const stb = @import("main.zig").stb;
+const TrueType = @import("zstb").TrueType;
 const Image = @import("Image.zig");
 const Color = Image.Color;
 
@@ -17,7 +16,7 @@ const Error = error {
 };
 
 pub const Font = struct {
-    info: stb.stbtt_fontinfo,
+    info: TrueType.stbtt_fontinfo,
     scale: f32,
     ascent: i32,
     descent: i32,
@@ -26,20 +25,20 @@ pub const Font = struct {
     height: i32,
 
     pub fn init(bytes: []const u8, height: f32) !Font {
-        var info: stb.stbtt_fontinfo = undefined;
-        if (stb.stbtt_InitFont(&info, bytes.ptr, 0) == 0) {
+        var info: TrueType.stbtt_fontinfo = undefined;
+        if (TrueType.stbtt_InitFont(&info, bytes.ptr, 0) == 0) {
             return error.FontInitFailed;
         }
 
-        const scale = stb.stbtt_ScaleForPixelHeight(&info, height);
+        const scale = TrueType.stbtt_ScaleForPixelHeight(&info, height);
         var ascent: c_int = 0;
         var descent: c_int = 0;
         var line_gap: c_int = 0;
-        stb.stbtt_GetFontVMetrics(&info, &ascent, &descent, &line_gap);
+        TrueType.stbtt_GetFontVMetrics(&info, &ascent, &descent, &line_gap);
 
         var adv: c_int = 0;
         var lsb: c_int = 0;
-        stb.stbtt_GetCodepointHMetrics(&info, 'M', &adv, &lsb);
+        TrueType.stbtt_GetCodepointHMetrics(&info, 'M', &adv, &lsb);
 
         return .{
             .info = info,
@@ -69,14 +68,14 @@ pub fn writeChar(
 
     var advance: c_int = 0;
     var lsb: c_int = 0;
-    stb.stbtt_GetCodepointHMetrics(&font.info, @intCast(codepoint), &advance, &lsb);
+    TrueType.stbtt_GetCodepointHMetrics(&font.info, @intCast(codepoint), &advance, &lsb);
     const advance_px: i32 = @intFromFloat(@as(f32, @floatFromInt(advance)) * font.scale);
 
-    const bitmap = stb.stbtt_GetCodepointBitmap(
+    const bitmap = TrueType.stbtt_GetCodepointBitmap(
         &font.info, 0, font.scale, @intCast(codepoint),
         &width, &height, &x_off, &y_off
     );
-    defer stb.stbtt_FreeBitmap(bitmap, null);
+    defer TrueType.stbtt_FreeBitmap(bitmap, null);
 
     const dy = y + font.ascent + y_off;
     const dx = x + x_off;
@@ -94,9 +93,9 @@ pub fn writeChar(
         if (i >= img.pixels.len) continue;
 
         const a = @as(f32, @floatFromInt(alpha)) / 255;
-        const r: u8 = @intFromFloat(@as(f32, @floatFromInt(color[0])) * a + @as(f32, @floatFromInt(img.pixels[i][0])) * (1 - a));
-        const g: u8 = @intFromFloat(@as(f32, @floatFromInt(color[1])) * a + @as(f32, @floatFromInt(img.pixels[i][1])) * (1 - a));
-        const b: u8 = @intFromFloat(@as(f32, @floatFromInt(color[2])) * a + @as(f32, @floatFromInt(img.pixels[i][2])) * (1 - a));
+        const r: u8 = @trunc(@as(f32, @floatFromInt(color[0])) * a + @as(f32, @floatFromInt(img.pixels[i][0])) * (1 - a));
+        const g: u8 = @trunc(@as(f32, @floatFromInt(color[1])) * a + @as(f32, @floatFromInt(img.pixels[i][1])) * (1 - a));
+        const b: u8 = @trunc(@as(f32, @floatFromInt(color[2])) * a + @as(f32, @floatFromInt(img.pixels[i][2])) * (1 - a));
 
         img.pixels[i] = .{ r, g, b, 255};
     };

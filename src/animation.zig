@@ -38,6 +38,7 @@ fn renderBatch(b: *Batch) !void {
 }
 
 pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
+    // load font
     const file = try Io.Dir.cwd().openFile(io, proc.font, .{.mode = .read_only});
     defer file.close(io);
     const size = (try file.stat(io)).size;
@@ -45,9 +46,9 @@ pub fn render(alloc: std.mem.Allocator, io: Io, proc: Proc) !void {
     const font_data = try alloc.alloc(u8, size);
     const content = try Io.Dir.readFile(Io.Dir.cwd(), io, proc.font, font_data);
 
+    // set up text
     var text: Text = try .fromPath(alloc, io, proc.input);
     text.font = try .init(content, 30);
-
     Highlight.highlight(Highlight.Zig.hl(), &text);
 
     const total_frames = (text.raw.len / proc.cps) * proc.fps;

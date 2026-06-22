@@ -25,6 +25,5 @@ pub fn main(init: std.process.Init) !void {
         proc.font,
     });
 
-    // load the font
     try animation.render(alloc, init.io, proc);
 }

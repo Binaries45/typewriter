@@ -78,7 +78,6 @@ fn addSymbol(img: *Img, s: Symbol, x: i32, y: i32, color: Color) void {
     const dx = x + s.x_off;
     const dy = y + s.y_off;
     for (0..s.height) |cy| for (0..s.width) |cx| {
-        // const i = (@as(u32, @intCast(by)) * @as(u32, @intCast(sy))) * img.width + (@as(u32, @intCast(bx)) * @as(u32, @intCast(sx)));
         const fx = dx + @as(i32, @intCast(cx));
         const fy = dy + @as(i32, @intCast(cy));
         if (fx < 0 or fy < 0) continue;
@@ -114,7 +113,7 @@ pub fn addText(img: *Img, text: *Text, n_chars: usize, cache: [256]?Symbol) void
         }
         if (c <= 31) continue;
 
-        const s = cache[c].?; // is expected to be non-null by now
+        const s = cache[c].?;
         img.addSymbol(s, x, y, color);
         x += s.advance;
     }
